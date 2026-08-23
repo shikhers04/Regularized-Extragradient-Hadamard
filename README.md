@@ -1,121 +1,115 @@
-# MATLAB Implementation of Example 1
+# Regularized Extragradient Methods on Hadamard Manifolds
 
-This repository contains the MATLAB implementation of **Example 1**. The code is provided to reproduce the numerical experiment involving the parameter `lambda` and to compare the numerical behavior of the corresponding regularized iterations.
+This repository contains MATLAB implementations of numerical experiments for regularized extragradient methods applied to equilibrium problems on Hadamard manifolds. The experiments compare:
 
-## Contents
+- **REMB**: regularized extragradient method with Busemann regularization;
+- **REMD**: regularized extragradient method with distance regularization; and
+- **TQY/Yao**: an adaptive extragradient method.
 
-- `Lambda_Buse.m` — MATLAB implementation of Example 1 using the **Busemann regularization**.
-- `Lambda_Dmetric.m` — MATLAB implementation of Example 1 using the **distance-metric regularization**.
+The code covers the positive orthant with its logarithmic metric, a bounded Nash-Cournot model, and the hyperboloid model of hyperbolic space.
 
-Both scripts:
+## Repository structure
 
-- use dimension `N = 3`;
-- test 10 values of the regularization parameter,
-  `lambda = 3*linspace(0.01,0.10,10)`;
-- perform 30 independent numerical trials for each parameter value;
-- use the stopping tolerance `epsilon = 1e-8`;
-- use a maximum of 1000 iterations;
-- generate mean and standard deviation of the iteration counts and computational times;
-- print the numerical results in a LaTeX-table-compatible format.
+### `BuseAndDistance/`
 
-## Mathematical setting
+Studies the effect of the regularization parameter in a three-dimensional positive-orthant example.
 
-The experiment is performed on the positive orthant. The distance/error used for the stopping criterion is
+- `Lambda_Buse.m` runs the Busemann-regularized iteration.
+- `Lambda_Dmetric.m` runs the distance-metric-regularized iteration.
 
-\[
-d(x,y)=\sum_{i=1}^{3}\left(\log\frac{x_i}{y_i}\right)^2.
-\]
+Each script tests 10 values of `lambda` from `0.03` to `0.30`, performs 30 trials per value, and uses a maximum of 1000 iterations with tolerance `1e-8`. It reports mean and standard deviation for iteration counts and execution time as LaTeX table rows. The convergence and boxplot sections are available as commented code.
 
-The iteration uses the mappings implemented directly in the MATLAB scripts. The two files differ in the regularization step used in the numerical experiment.
+### `PositiveOrthantComp/`
 
-### Busemann regularization
+Compares REMB, REMD, and TQY in dimension `N = 100` on the positive orthant. The distance is
 
-In `Lambda_Buse_publishable.m`, the iteration is implemented as
-
-```matlab
-y_s = J(x_s, lambda);
-x_s = JF(y_s, x_s, lambda);
+```text
+d(x,y) = sqrt(sum((log(x_i/y_i))^2)).
 ```
 
-### Distance-metric regularization
+- `CompareNdim.m` runs one comparison from a random initial point, reports iterations, final errors, and execution times, and writes `figure.eps`.
+- `BoxCompareNdim.m` runs 30 trials for each of 10 initial regularization values, using the same initial point for all three methods in each trial. It creates six EPS boxplots for iteration counts and CPU times.
 
-In `Lambda_Dmetric_publishable.m`, the corresponding iteration is implemented as
+Both scripts use `epsilon = 1e-8` and at most 1000 iterations. The equilibrium bifunction is implemented as
 
-```matlab
-y_s = J(x_s, lambda / 2);
-x_s = JF(y_s, x_s, lambda);
+```text
+F(x,y) = sum(log(x_i) * log(y_i/x_i)).
 ```
+
+The reference solution is the all-ones vector.
+
+### `Nash_Courant/`
+
+Implements a four-company Nash-Cournot equilibrium experiment on the bounded box
+
+```text
+[1000,2000] x [500,2500] x [800,1500] x [500,3000].
+```
+
+- `Main_Comparision.m` compares Busemann + Neto, distance + Neto, and TQY/Yao, then plots their convergence histories.
+- `Neto_extragradient_step.m` provides the constrained two-step Neto extragradient procedure.
+- `TQY_extragradient.m` provides the constrained adaptive TQY procedure.
+
+The Nash-Cournot bifunction is
+
+```text
+F(x,y) = (P*x + Q*y + r)' * (y - x).
+```
+
+The outer methods use at most 1000 iterations; the inner Neto method uses at most 10 iterations. The constrained minimizations use `fmincon` with the interior-point algorithm.
+
+### `Hyperbolic/`
+
+Compares REMB, REMD, and TQY on the hyperboloid model of `H^50`, represented in `R^51` by
+
+```text
+H^N = {x : <x,x>_L = -1 and x_(N+1) > 0},
+```
+
+with Lorentz product
+
+```text
+<x,y>_L = sum(x_i*y_i) - x_(N+1)*y_(N+1)
+```
+
+and distance `d_H(x,y) = acosh(-<x,y>_L)`. `HyperComp.m` generates a random valid initial point, uses `(0,...,0,1)` as the reference point, runs at most 300 iterations with tolerance `1e-8`, prints a numerical comparison, and plots the consecutive-iterate errors.
+
+The script includes local implementations of the Busemann resolvent, distance-type resolvent, proximal mapping, bifunction, hyperbolic distance, Lorentz product, and projection back onto the hyperboloid. Numerical safeguards protect the hyperboloid constraint from floating-point drift.
 
 ## Requirements
 
-- MATLAB R2020b or later.
-- No additional MATLAB toolbox is required beyond the functions used by the scripts.
+- MATLAB R2020b or later is recommended. The scripts use local functions in script files.
+- The Nash-Cournot experiment requires the MATLAB Optimization Toolbox because it calls `fmincon`.
+- The other experiments use MATLAB built-in numerical functions and do not require an additional toolbox.
 
-## How to run
+## Running the experiments
 
-1. Download or clone this repository.
-2. Open MATLAB and set the repository folder as the **Current Folder**.
-3. Run either script:
-
-```matlab
-Lambda_Buse_publishable
-```
-
-or
+Open MATLAB, set the current folder to the repository root, and run one of the scripts from its subfolder. For example:
 
 ```matlab
-Lambda_Dmetric_publishable
+cd BuseAndDistance
+Lambda_Buse
 ```
 
-The command window will display the mean iteration count, standard deviation, mean computational time, and standard deviation for each value of `lambda` in a format suitable for inclusion in a LaTeX table.
-
-## Reproducibility
-
-A fixed random-number seed is included in both scripts:
+Other entry points are:
 
 ```matlab
-RNG_SEED = 1;
-rng(RNG_SEED, 'twister');
+cd PositiveOrthantComp
+CompareNdim
+BoxCompareNdim
+
+cd ../Nash_Courant
+Main_Comparision
+
+cd ../Hyperbolic
+HyperComp
 ```
 
-The initial point in each trial is generated by
+The scripts display numerical results in the MATLAB command window and create figures or EPS files where indicated above. Results depend on the random initial points; `Lambda_Buse.m` and `Lambda_Dmetric.m` explicitly set the random seed to `1`, while the comparison scripts use MATLAB's current random-number state.
 
-```matlab
-x_s = randi([5, 20], N, 1);
-```
+## Citation
 
-Thus, the numerical experiment can be reproduced using the same MATLAB version and computational environment.
+These implementations accompany the paper:
 
-If the paper uses a different randomization protocol, the seed or initial-point generation can be changed in the parameter section of the scripts.
+**Regularized Extragradient Methods for Solving Equilibrium Problems on Hadamard Manifolds**
 
-## Plotting
-
-The scripts intentionally retain three plotting sections as **commented code** so that the numerical experiment can be run without automatically opening figures. Uncomment the required section when a plot is needed.
-
-### Plot 1 — Convergence curves
-
-Plots the error history for the different values of `lambda` on a logarithmic scale.
-
-### Plot 2 — Iteration counts
-
-Produces a boxplot of the number of iterations required for convergence for each value of `lambda`.
-
-### Plot 3 — Computational time
-
-Produces a boxplot of the computational time for each value of `lambda`.
-
-The three sections are clearly marked in the MATLAB files as:
-
-```text
-Plot 1: Convergence Curves for All Lambda Values
-Plot 2: Boxplot for Iteration Counts
-Plot 3: Boxplot for Computational Time
-```
-
-## Notes on the implementation
-
-- All iterates remain in the positive orthant for the initial points and mappings used in this example.
-- The stopping criterion is based on the distance between two consecutive iterates:
-  `d(x_{k-1},x_k) <= 1e-8`.
-- The scripts retain the local functions `J`, `JF`, and `d` within the corresponding MATLAB file, so no additional function files are required.
-- The code has been formatted for direct inclusion in a public research-code repository.
